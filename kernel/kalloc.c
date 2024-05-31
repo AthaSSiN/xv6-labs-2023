@@ -14,6 +14,8 @@ void freerange(void *pa_start, void *pa_end);
 extern char end[]; // first address after kernel.
                    // defined by kernel.ld.
 
+// uint64 free_mem;
+
 struct run {
   struct run *next;
 };
@@ -27,6 +29,7 @@ void
 kinit()
 {
   initlock(&kmem.lock, "kmem");
+  // free_mem = 0;
   freerange(end, (void*)PHYSTOP);
 }
 
@@ -54,6 +57,9 @@ kfree(void *pa)
   // Fill with junk to catch dangling refs.
   memset(pa, 1, PGSIZE);
 
+  // Add to free_mem
+  // free_mem += PGSIZE;
+
   r = (struct run*)pa;
 
   acquire(&kmem.lock);
@@ -76,7 +82,33 @@ kalloc(void)
     kmem.freelist = r->next;
   release(&kmem.lock);
 
-  if(r)
+  if(r) {
     memset((char*)r, 5, PGSIZE); // fill with junk
+
+    // Remove from free_mem
+    // free_mem -= PGSIZE;
+  }
   return (void*)r;
+}
+
+uint64 get_freemem()
+{
+  // return free_mem;
+
+  uint64 free_mem = 0;
+
+  // printf("%d\n", free_mem);
+
+  // acquire(&kmem.lock); // do i need these?
+  struct run* r = kmem.freelist;
+  while(r) {
+    free_mem += PGSIZE;
+    r = r->next;
+    // printf("%d\n", free_mem);
+  }
+  // release(&kmem.lock);
+
+  printf("freemem: %d\n", free_mem);
+
+  return free_mem;
 }
