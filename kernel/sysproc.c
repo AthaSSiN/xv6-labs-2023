@@ -70,7 +70,7 @@ sys_sleep(void)
 }
 
 
-// #ifdef LAB_PGTBL
+#ifdef LAB_PGTBL
 int
 sys_pgaccess(void)
 {
@@ -83,6 +83,8 @@ sys_pgaccess(void)
   argint(1, &len);
   argaddr(2, &mask);
 
+  vmprint(myproc()->pagetable);
+  
   printf("%p, %d, %p\n", base, len, mask);
 
   if(len > 64)
@@ -90,23 +92,26 @@ sys_pgaccess(void)
   
   uint64 abits = 0;
 
+  pagetable_t pagetable = myproc()->pagetable;
+
   for(int i = 0 ; i < len ; ++i) {
     uint64 curr_va = (base + PGSIZE * i);
+    pte_t *pte = walk(pagetable, curr_va, 0);
     printf("At %p, itr %d\n", curr_va, i);
-    if(curr_va & PTE_A) {
+    if(*pte & PTE_A) {
 
       printf("%p is accessed\n", curr_va);
       abits = (uint64)abits | (1 << i);
 
       // unset after using
-      curr_va &= (~PTE_A);
+      *pte &= (~PTE_A);
     }
   }
 
   printf("%p\n", abits);
-  return copyout(myproc()->pagetable, mask, (char *)abits, sizeof(uint64));
+  return copyout(myproc()->pagetable, mask, (char *)&abits, sizeof(uint64));
 }
-// #endif
+#endif
 
 uint64
 sys_kill(void)

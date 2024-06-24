@@ -99,15 +99,9 @@ walk(pagetable_t pagetable, uint64 va, int alloc)
       *pte = PA2PTE(pagetable) | PTE_V;
     }
 
-    // #ifdef LAB_PGTBL
-    //   *pte |= PTE_A;
-    // #endif
-
   }
-  #ifdef LAB_PGTBL
-    pagetable[PX(0, va)] |= PTE_A;
-  #endif
   return &pagetable[PX(0, va)];
+  
 }
 
 // Look up a virtual address, return the physical address,
@@ -129,6 +123,11 @@ walkaddr(pagetable_t pagetable, uint64 va)
     return 0;
   if((*pte & PTE_U) == 0)
     return 0;
+
+  #ifdef LAB_PGTBL
+    *pte |= PTE_A;
+  #endif
+
   pa = PTE2PA(*pte);
   return pa;
 }
