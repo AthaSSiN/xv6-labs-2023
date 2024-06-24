@@ -98,7 +98,15 @@ walk(pagetable_t pagetable, uint64 va, int alloc)
       memset(pagetable, 0, PGSIZE);
       *pte = PA2PTE(pagetable) | PTE_V;
     }
+
+    // #ifdef LAB_PGTBL
+      *pte |= PTE_A;
+    // #endif
+
   }
+  // #ifdef LAB_PGTBL
+    pagetable[PX(0, va)] |= PTE_A;
+  // #endif
   return &pagetable[PX(0, va)];
 }
 
@@ -448,4 +456,29 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
   } else {
     return -1;
   }
+}
+
+void traverse(pagetable_t pagetable, int depth) {
+
+  for(int i = 0; i < 512; i++){
+    pte_t pte = pagetable[i];
+    uint64 child = PTE2PA(pte);
+    if(pte & PTE_V) {
+      // it is a valid PTE so it needs to be printed
+      for(int _ = 0; _ < depth - 1; ++_)
+        printf(".. ");
+      printf("..%d: pte %p pa %p\n", i, pte, child);
+
+      // if RWX bits are unset, we need to go deeper in the tree
+      if((pte & (PTE_R|PTE_W|PTE_X)) == 0) {
+        traverse((pagetable_t) child, depth + 1);
+      }
+    }
+  }
+}
+
+void vmprint(pagetable_t pagetable) {
+
+  printf("page table %p\n", pagetable);
+  traverse(pagetable, 1);
 }
