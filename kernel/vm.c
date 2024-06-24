@@ -100,13 +100,13 @@ walk(pagetable_t pagetable, uint64 va, int alloc)
     }
 
     // #ifdef LAB_PGTBL
-      *pte |= PTE_A;
+    //   *pte |= PTE_A;
     // #endif
 
   }
-  // #ifdef LAB_PGTBL
+  #ifdef LAB_PGTBL
     pagetable[PX(0, va)] |= PTE_A;
-  // #endif
+  #endif
   return &pagetable[PX(0, va)];
 }
 

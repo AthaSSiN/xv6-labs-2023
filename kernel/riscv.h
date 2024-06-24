@@ -345,7 +345,7 @@ typedef uint64 *pagetable_t; // 512 PTEs
 #define PTE_U (1L << 4) // user can access
 
 // #ifdef LAB_PGTBL
-#define PTE_A (1L << 8)
+#define PTE_A (1L << 6)
 // #endif
 
 // shift a physical address to the right place for a PTE.

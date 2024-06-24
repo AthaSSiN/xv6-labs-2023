@@ -82,7 +82,29 @@ sys_pgaccess(void)
   argaddr(0, &base);
   argint(1, &len);
   argaddr(2, &mask);
-  return pgaccess(base, len, mask);
+
+  printf("%p, %d, %p\n", base, len, mask);
+
+  if(len > 64)
+    return -1;
+  
+  uint64 abits = 0;
+
+  for(int i = 0 ; i < len ; ++i) {
+    uint64 curr_va = (base + PGSIZE * i);
+    printf("At %p, itr %d\n", curr_va, i);
+    if(curr_va & PTE_A) {
+
+      printf("%p is accessed\n", curr_va);
+      abits = (uint64)abits | (1 << i);
+
+      // unset after using
+      curr_va &= (~PTE_A);
+    }
+  }
+
+  printf("%p\n", abits);
+  return copyout(myproc()->pagetable, mask, (char *)abits, sizeof(uint64));
 }
 // #endif
 
