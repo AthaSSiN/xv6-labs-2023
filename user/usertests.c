@@ -78,7 +78,7 @@ copyout(char *s)
 {
   uint64 addrs[] = { 0LL, 0x80000000LL, 0xffffffffffffffff };
 
-  for(int ai = 0; ai < 2; ai++){
+  for(int ai = 0; ai < 3; ai++){
     uint64 addr = addrs[ai];
 
     int fd = open("README", 0);
@@ -2432,6 +2432,7 @@ textwrite(char *s)
   if(pid == 0) {
     volatile int *addr = (int *) 0;
     *addr = 10;
+    printf("sad\n");
     exit(1);
   } else if(pid < 0){
     printf("%s: fork failed\n", s);

@@ -124,9 +124,10 @@ walkaddr(pagetable_t pagetable, uint64 va)
   if((*pte & PTE_U) == 0)
     return 0;
 
-  #ifdef LAB_PGTBL
-    *pte |= PTE_A;
-  #endif
+  // NOTE: We don't need these as the MMU does this on its own!
+  // #ifdef LAB_PGTBL
+  //   *pte |= PTE_A;
+  // #endif
 
   pa = PTE2PA(*pte);
   return pa;
@@ -370,12 +371,18 @@ copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len)
 
   while(len > 0){
     va0 = PGROUNDDOWN(dstva);
-    if(va0 >= MAXVA)
+    if(va0 >= MAXVA || va0 == 0)
       return -1;
     pte = walk(pagetable, va0, 0);
     if(pte == 0 || (*pte & PTE_V) == 0 || (*pte & PTE_U) == 0 ||
        (*pte & PTE_W) == 0)
       return -1;
+
+    // NOTE: We don't need these as the kernel does this on its own!
+    // #ifdef LAB_PGTBL
+    //   *pte |= PTE_A;
+    // #endif
+    
     pa0 = PTE2PA(*pte);
     n = PGSIZE - (dstva - va0);
     if(n > len)

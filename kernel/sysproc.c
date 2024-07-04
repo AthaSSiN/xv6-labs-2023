@@ -98,7 +98,7 @@ sys_pgaccess(void)
     uint64 curr_va = (base + PGSIZE * i);
     pte_t *pte = walk(pagetable, curr_va, 0);
     printf("At %p, itr %d\n", curr_va, i);
-    if(*pte & PTE_A) {
+    if(pte && (*pte & PTE_V ) && (*pte & PTE_A)) {
 
       printf("%p is accessed\n", curr_va);
       abits = (uint64)abits | (1 << i);
