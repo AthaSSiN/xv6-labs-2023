@@ -1,0 +1,6 @@
+1. a0, a1, a2, ... etc
+2. call to f(x) is at line 26: the compiler inlined the function and calculated the values directly. the call to g(x) is also inlined: line 14 to 1a
+3. 0x630
+4. 0x38 (returns to instruction after call)
+5. HE110 World. 0x726c6400, no need to change 57616
+6. picks up values from the calling function (printf's) stack / valus of the a2 register which might have been set previously

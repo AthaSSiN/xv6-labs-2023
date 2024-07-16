@@ -146,6 +146,12 @@ found:
   p->context.ra = (uint64)forkret;
   p->context.sp = p->kstack + PGSIZE;
 
+  // traps lab
+  p->duration = 0;
+  p->handler = 0;
+  p->ticks = 0;
+  p->trapframe_copy = 0;
+
   return p;
 }
 
@@ -685,4 +691,23 @@ procdump(void)
     printf("%d %s %s", p->pid, state, p->name);
     printf("\n");
   }
+}
+
+int sigalarm(int ticks, void(*handler)())
+{
+  struct proc *p = myproc();
+  p->duration = ticks;
+  p->handler = handler;
+  p->ticks = 0;
+  // printf("%p\n", handler);
+  return 0;
+}
+
+int sigreturn(void)
+{
+  struct proc *p = myproc();
+  memmove(p->trapframe, p->trapframe_copy, sizeof(struct trapframe));
+  kfree(p->trapframe_copy);
+  p->trapframe_copy = 0;
+  return p->trapframe->a0;
 }

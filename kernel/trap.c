@@ -67,6 +67,23 @@ usertrap(void)
     syscall();
   } else if((which_dev = devintr()) != 0){
     // ok
+
+    // traps lab
+    if(which_dev == 2) {
+      if(p->duration) {
+        p->ticks++;
+        // printf("Here %d %d\n", p->duration, p->ticks);
+        if(p->ticks >= p->duration && !p->trapframe_copy /* prevents reentrancy*/) {
+          p->trapframe_copy = (struct trapframe*)kalloc();
+          memmove(p->trapframe_copy, p->trapframe, sizeof(struct trapframe));
+          // or maybe use *p->trapframe_copy = *p->trapframe?
+          p->trapframe->epc = (uint64)p->handler;
+          p->ticks = 0;
+        }
+      }
+
+      // intr_on(); // is this needed? not sure
+    }
   } else {
     printf("usertrap(): unexpected scause %p pid=%d\n", r_scause(), p->pid);
     printf("            sepc=%p stval=%p\n", r_sepc(), r_stval());

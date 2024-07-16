@@ -35,6 +35,7 @@ volatile static int count;
 void
 periodic()
 {
+  // printf("periodic");
   count = count + 1;
   printf("alarm!\n");
   sigreturn();

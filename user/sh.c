@@ -166,7 +166,7 @@ main(void)
       continue;
     }
     if(fork1() == 0)
-      runcmd(parsecmd(buf));
+      runcmd(parsecmd(buf)); // source of sbrk: parsecmd->parseline->parsepipe->parseexec->execcmd->malloc
     wait(0);
   }
   exit(0);
@@ -193,6 +193,7 @@ fork1(void)
 //PAGEBREAK!
 // Constructors
 
+// This is the source of sbrk in exec
 struct cmd*
 execcmd(void)
 {
