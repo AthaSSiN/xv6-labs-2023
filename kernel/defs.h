@@ -1,3 +1,10 @@
+// #include "memlayout.h"
+// #include "riscv.h"
+
+#define KERNBASE 0x80000000L
+#define PHYSTOP (KERNBASE + 128*1024*1024)
+#define PGSIZE 4096
+
 struct buf;
 struct context;
 struct file;
@@ -63,6 +70,7 @@ void            ramdiskrw(struct buf*);
 void*           kalloc(void);
 void            kfree(void *);
 void            kinit(void);
+extern int      ref_count[PHYSTOP / PGSIZE];
 
 // log.c
 void            initlog(int, struct superblock*);
@@ -170,6 +178,7 @@ void            uvmunmap(pagetable_t, uint64, uint64, int);
 void            uvmclear(pagetable_t, uint64);
 pte_t *         walk(pagetable_t, uint64, int);
 uint64          walkaddr(pagetable_t, uint64);
+void            cow(pagetable_t, int);
 int             copyout(pagetable_t, uint64, char *, uint64);
 int             copyin(pagetable_t, char *, uint64, uint64);
 int             copyinstr(pagetable_t, char *, uint64, uint64);

@@ -67,7 +67,42 @@ usertrap(void)
     syscall();
   } else if((which_dev = devintr()) != 0){
     // ok
-  } else {
+  } else if(r_scause() == 15) { // COW starts
+    
+    // store page fault (access fault is 7 lmao)
+    // printf("COW trap\n");
+    pte_t *pte;
+    pagetable_t pagetable = p->pagetable;
+    uint64 va = PGROUNDDOWN(r_stval());
+    if(va >= MAXVA) {
+      setkilled(p);
+      exit(-1);
+    }
+    // printf("%p %p\n,", va, MAXVA);
+    if((pte = walk(pagetable, va, 0)) == 0)
+      panic("usertrap: COW pte should exist");
+    if((*pte & PTE_V) == 0)
+      panic("usertrap: COW page not present");
+    
+    // check if it is not a COW fork
+    if((*pte & PTE_RSW1) == 0) {
+      setkilled(p);
+      exit(-1);
+    }
+    
+    uint64 pa = PTE2PA(*pte);
+    char *mem;
+    if((mem = kalloc()) == 0) {
+      setkilled(p);
+      exit(-1);
+    }
+    memmove(mem, (char*)pa, PGSIZE);
+    
+    uint flags = (PTE_FLAGS(*pte) | PTE_W) & ~PTE_RSW1;
+    *pte = PA2PTE(mem) | flags | PTE_V;
+    kfree((void*)pa);
+  }
+  else {
     printf("usertrap(): unexpected scause %p pid=%d\n", r_scause(), p->pid);
     printf("            sepc=%p stval=%p\n", r_sepc(), r_stval());
     setkilled(p);

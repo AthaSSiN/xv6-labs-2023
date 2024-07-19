@@ -315,23 +315,35 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
   pte_t *pte;
   uint64 pa, i;
   uint flags;
-  char *mem;
 
+  // printf("In uvmcopy!\n");
   for(i = 0; i < sz; i += PGSIZE){
     if((pte = walk(old, i, 0)) == 0)
       panic("uvmcopy: pte should exist");
     if((*pte & PTE_V) == 0)
       panic("uvmcopy: page not present");
     pa = PTE2PA(*pte);
+    // start COW
+    // if((mem = kalloc()) == 0)
+    //   goto err;
+    // memmove(mem, (char*)pa, PGSIZE);
+
+    // extract flags
+    if(*pte & PTE_W) {
+      // printf("Before %p\n", *pte);
+      *pte = (*pte | PTE_RSW1) & ~PTE_W;
+      // printf("After %p\n", *pte);
+    }
     flags = PTE_FLAGS(*pte);
-    if((mem = kalloc()) == 0)
-      goto err;
-    memmove(mem, (char*)pa, PGSIZE);
-    if(mappages(new, i, PGSIZE, (uint64)mem, flags) != 0){
-      kfree(mem);
+    // printf("%d %d\n", flags & PTE_W, flags & PTE_RSW1);
+    
+    if(mappages(new, i, PGSIZE, pa, flags) != 0){
+      // kfree(mem);
       goto err;
     }
+    ref_count[pa / PGSIZE]++;
   }
+  // printf("returned\n");
   return 0;
 
  err:
@@ -358,6 +370,7 @@ uvmclear(pagetable_t pagetable, uint64 va)
 int
 copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len)
 {
+  // printf("In copyout\n");
   uint64 n, va0, pa0;
   pte_t *pte;
 
@@ -367,8 +380,22 @@ copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len)
       return -1;
     pte = walk(pagetable, va0, 0);
     if(pte == 0 || (*pte & PTE_V) == 0 || (*pte & PTE_U) == 0 ||
-       (*pte & PTE_W) == 0)
+       (*pte & (PTE_W | PTE_RSW1)) == 0)
       return -1;
+    if(*pte & PTE_RSW1) { // cow
+      // printf("Ini PTE %p", *pte);
+      uint64 pa = PTE2PA(*pte);
+      char* mem;
+      if((mem = kalloc()) == 0)
+        return -1;
+      memmove(mem, (char*)pa, PGSIZE);
+      
+      uint flags = (PTE_FLAGS(*pte) | PTE_W) & ~PTE_RSW1;
+
+      *pte = PA2PTE(mem) | flags | PTE_V;
+      kfree((void*)pa);
+      // printf("Final PTE %p", *pte);
+    }
     pa0 = PTE2PA(*pte);
     n = PGSIZE - (dstva - va0);
     if(n > len)
@@ -379,6 +406,7 @@ copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len)
     src += n;
     dstva = va0 + PGSIZE;
   }
+  // printf("Copyout over\n");
   return 0;
 }
 
