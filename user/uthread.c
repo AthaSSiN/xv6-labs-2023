@@ -45,6 +45,9 @@ thread_init(void)
   // main() is thread 0, which will make the first invocation to
   // thread_schedule(). It needs a stack so that the first thread_switch() can
   // save thread 0's state.
+  for(int i = 0; i < MAX_THREAD; ++i){
+    // printf("%d, %d, %d\n", all_thread[i].stack[0], all_thread[i].state, all_thread[i].context.ra);
+  }
   current_thread = &all_thread[0];
   current_thread->state = RUNNING;
 }
@@ -55,6 +58,7 @@ thread_schedule(void)
   struct thread *t, *next_thread;
 
   /* Find another runnable thread. */
+  // printf("%d %d %d\n", all_thread[1].state, all_thread[2].state, all_thread[3].state);
   next_thread = 0;
   t = current_thread + 1;
   for(int i = 0; i < MAX_THREAD; i++){
@@ -73,13 +77,18 @@ thread_schedule(void)
   }
 
   if (current_thread != next_thread) {         /* switch threads?  */
+    // printf("%d %d\n", current_thread - all_thread, next_thread - all_thread);
     next_thread->state = RUNNING;
+    // current_thread->state = RUNNABLE; 
+    // can't do this as it sets thread 0 to RUNNABLE too when first thread_schedule is called
+    // use thread_yield for this!
     t = current_thread;
     current_thread = next_thread;
     /* YOUR CODE HERE
      * Invoke thread_switch to switch from t to next_thread:
      * thread_switch(??, ??);
      */
+    // printf("%d %p %p\n", t->state, &t->state, &current_thread->stack);
     thread_switch((uint64)&t->context, (uint64)&current_thread->context);
   } else
     next_thread = 0;
@@ -99,10 +108,17 @@ thread_create(void (*func)())
   // setting up context for first call
   memset(&t->context, 0, sizeof(t->context));
   t->context.ra = (uint64)func; // set return address to the function
-  t->context.sp = (uint64)t->stack + (STACK_SIZE) / 2;
+  t->context.sp = (uint64)t->stack + (STACK_SIZE);
   // try this out with different values
   // kstack in proc is at TRAMPOLINE - 2 * proc * PGSIZE 
   // and sp is set at kstack + PGSIZE
+  // RESULT: not adding probably makes the stack overflow into the previous thread's context: thats why only thread c runs
+  // - no! its overflowing till the state as well!
+
+  // check gdb: thread->stack fills up till 7839 / 8192 values so ~ 350 are filled up, without offset, the state is at just at a difference of 14 * 8 + 8
+
+
+  printf("Thread %d %p %p %p %p\n", (t - all_thread), &t->stack, &t->state, &t->context, t->context.s7);
 }
 
 void 

@@ -1,0 +1,6 @@
+  // malloc already has mutex locks but the overlap case is when two inserts happen together, we might have a fork on the head
+  struct entry *e = malloc(sizeof(struct entry));
+  e->key = key;
+  e->value = value;
+  e->next = n; // this is the problem
+  *p = e; // this is the problem, one of the inserts goes missing

@@ -14,6 +14,7 @@ struct entry {
   struct entry *next;
 };
 struct entry *table[NBUCKET];
+pthread_mutex_t locks[NBUCKET];
 int keys[NKEYS];
 int nthread = 1;
 
@@ -29,11 +30,12 @@ now()
 static void 
 insert(int key, int value, struct entry **p, struct entry *n)
 {
+  // malloc already has mutex locks but the overlap case is when two inserts happen together, we might have a fork on the head
   struct entry *e = malloc(sizeof(struct entry));
   e->key = key;
   e->value = value;
-  e->next = n;
-  *p = e;
+  e->next = n; // this is the problem
+  *p = e; // this is the problem, one of the inserts goes missing
 }
 
 static 
@@ -42,17 +44,24 @@ void put(int key, int value)
   int i = key % NBUCKET;
 
   // is the key already present?
-  struct entry *e = 0;
+  struct entry *e = 0; // this is in the stack, unique to every thread
   for (e = table[i]; e != 0; e = e->next) {
-    if (e->key == key)
+    if (e->key == key) // reading, no writing
       break;
   }
   if(e){
     // update the existing key.
-    e->value = value;
+    e->value = value; // invariant still holds so no need for a lock
   } else {
-    // the new is new.
+    // the key is new.
+
+    // I suspect the lock is only needed in this section, lets see if the assumption is correct
+
+    pthread_mutex_lock(&locks[i]);
     insert(key, value, &table[i], table[i]);
+    pthread_mutex_unlock(&locks[i]);
+
+    // it seems to be correct!
   }
 
 }
@@ -117,6 +126,10 @@ main(int argc, char *argv[])
   for (int i = 0; i < NKEYS; i++) {
     keys[i] = random();
   }
+
+  // doing it above by seeing if the table is NULL is wrong, races in init led to missing keys xD
+  for(int i = 0; i < NBUCKET; ++i)
+    pthread_mutex_init(&locks[i], NULL);
 
   //
   // first the puts
